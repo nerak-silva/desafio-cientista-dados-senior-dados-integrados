@@ -1,0 +1,151 @@
+version: 2
+
+models:
+  - name: int_educacao__aluno
+    description: "Modelo intermediário de alunos, com padronização de identificadores e atributos de perfil usados nas análises."
+    columns:
+      - name: id_aluno
+        description: "Identificador único do aluno."
+        data_tests:
+          - not_null
+          - unique
+
+      - name: id_turma
+        description: "Identificador da turma associada ao aluno."
+        data_tests:
+          - not_null
+
+      - name: faixa_etaria
+        description: "Faixa etária do aluno."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0-5', '6-10', '11-14', '15-17', '18+']
+
+      - name: id_bairro
+        description: "Identificador anonimizado do bairro de residência do aluno."
+
+  - name: int_educacao__avaliacao_consolidada
+    description: "Modelo intermediário com os registros de avaliação consolidados por aluno, turma e bimestre."
+    columns:
+      - name: id_aluno
+        description: "Identificador único do aluno."
+        data_tests:
+          - not_null
+
+      - name: id_turma
+        description: "Identificador da turma."
+        data_tests:
+          - not_null
+
+      - name: bimestre
+        description: "Bimestre da avaliação."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '3', '4']
+
+      - name: frequencia
+        description: "Percentual de frequência geral do aluno no bimestre."
+
+      - name: disciplina_1
+        description: "Nota da disciplina 1."
+
+      - name: disciplina_2
+        description: "Nota da disciplina 2."
+
+      - name: disciplina_3
+        description: "Nota da disciplina 3."
+
+      - name: disciplina_4
+        description: "Nota da disciplina 4."
+
+  - name: int_educacao__avaliacao_normalizada
+    description: "Modelo intermediário que normaliza as notas de disciplinas, transformando colunas de disciplinas em linhas."
+    columns:
+      - name: id_aluno
+        description: "Identificador único do aluno."
+        data_tests:
+          - not_null
+
+      - name: id_turma
+        description: "Identificador da turma."
+        data_tests:
+          - not_null
+
+      - name: bimestre
+        description: "Bimestre da avaliação."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '3', '4']
+
+      - name: frequencia
+        description: "Percentual de frequência geral do aluno no bimestre."
+
+      - name: disciplina
+        description: "Disciplina normalizada a partir das colunas de nota."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['disciplina_1', 'disciplina_2', 'disciplina_3', 'disciplina_4']
+
+      - name: nota
+        description: "Nota do aluno na disciplina."
+        data_tests:
+          - not_null
+
+  - name: int_educacao__base_desempenho
+    description: "Base intermediária principal para análises de desempenho e frequência, combinando avaliação normalizada, aluno, turma, escola e frequência."
+    columns:
+      - name: id_aluno
+        description: "Identificador único do aluno."
+        data_tests:
+          - not_null
+
+      - name: id_turma
+        description: "Identificador da turma."
+        data_tests:
+          - not_null
+
+      - name: id_escola
+        description: "Identificador da escola associada à turma do aluno."
+
+      - name: id_bairro_escola
+        description: "Identificador anonimizado do bairro da escola."
+
+      - name: ano
+        description: "Ano letivo anonimizado."
+
+      - name: bimestre
+        description: "Bimestre da avaliação."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '3', '4']
+
+      - name: disciplina
+        description: "Disciplina avaliada."
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['disciplina_1', 'disciplina_2', 'disciplina_3', 'disciplina_4']
+
+      - name: nota
+        description: "Nota do aluno na disciplina."
+        data_tests:
+          - not_null
+
+      - name: frequencia_avaliacao
+        description: "Frequência geral bimestral do aluno, proveniente da tabela de avaliação."
+
+      - name: faixa_etaria
+        description: "Faixa etária do aluno."
+
+      - name: id_bairro_aluno
+        description: "Identificador anonimizado do bairro de residência do aluno."

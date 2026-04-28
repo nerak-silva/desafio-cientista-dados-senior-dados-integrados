@@ -1,0 +1,104 @@
+version: 2
+
+models:
+  - name: stg_educacao__aluno
+    columns:
+      - name: id_aluno
+        data_tests:
+          - not_null
+          - unique
+
+      - name: faixa_etaria
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['0-5', '6-10', '11-14', '15-17', '18+']
+
+  - name: stg_educacao__avaliacao
+    description: "Notas e avaliações dos alunos por bimestre, com frequência geral bimestral do aluno e notas por disciplina."
+
+    columns:
+      - name: id_aluno
+        data_tests:
+          - not_null
+
+      - name: id_turma
+        data_tests:
+          - not_null
+
+      - name: bimestre
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '3', '4']
+
+      - name: frequencia
+        description: "Percentual de frequência geral do aluno no bimestre."
+
+      - name: disciplina_1
+        description: "Nota da disciplina 1."
+      - name: disciplina_2
+        description: "Nota da disciplina 2."
+      - name: disciplina_3
+        description: "Nota da disciplina 3."
+      - name: disciplina_4
+        description: "Nota da disciplina 4."
+
+  - name: stg_educacao__escola
+    columns:
+      - name: id_escola
+        data_tests:
+          - not_null
+          - unique
+
+      - name: id_bairro
+        data_tests:
+          - not_null
+
+  - name: stg_educacao__frequencia
+    columns:
+      - name: id_escola
+        data_tests:
+          - not_null
+
+      - name: id_aluno
+        data_tests:
+          - not_null
+
+      - name: id_turma
+        data_tests:
+          - not_null
+
+      - name: data_inicio
+        data_tests:
+          - not_null
+
+      - name: data_fim
+        data_tests:
+          - not_null
+
+      - name: disciplina
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['disciplina_1', 'disciplina_2', 'disciplina_3', 'disciplina_4']
+
+      - name: frequencia
+        data_tests:
+          - not_null
+
+  - name: stg_educacao__turma
+    columns:
+      - name: ano
+        data_tests:
+          - not_null
+
+      - name: id_turma
+        data_tests:
+          - not_null
+
+      - name: id_aluno
+        data_tests:
+          - not_null

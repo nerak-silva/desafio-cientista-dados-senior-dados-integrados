@@ -1,0 +1,26 @@
+name: desafio_rmi
+
+profile: desafio_rmi
+
+seed-paths: ["seeds"]
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+seeds:
+  desafio_rmi:
+    +schema: seeds_rmi
+
+models:
+  desafio_rmi:
+    staging:
+      +materialized: table
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table

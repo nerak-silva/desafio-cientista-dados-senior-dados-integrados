@@ -1,211 +1,564 @@
-# Desafio Técnico - Cientista de Dados Sênior
+# Desafio Técnico — Cientista de Dados Sênior
 
-## Registro Municipal Integrado (RMI)
+Este repositório contém uma solução para o desafio técnico de Cientista de Dados Sênior RMI.
+
+A solução utiliza `dbt` para modelagem e transformação dos dados, com armazenamento e execução das consultas no BigQuery. Antes da modelagem, realizei uma **análise exploratória em Python no Google Colab**, conectada ao BigQuery, para investigar volume, estrutura, preenchimento, distribuição dos campos e possíveis inconsistências nas fontes. Essa etapa ajudou a orientar as decisões de modelagem, a escolha dos indicadores e a construção dos marts analíticos.
+
+O projeto organiza as transformações nas camadas `staging`, `intermediate` e `marts`. Na camada `staging`, os dados brutos são padronizados, tipados e preparados para uso analítico. Na camada `intermediate`, as fontes são combinadas para formar bases reutilizáveis, como a base de desempenho escolar. Na camada `marts`, são construídas as tabelas finais do projeto, já organizadas para consumo analítico e dashboard.
+
+Para demonstrar o uso desses modelos em um contexto de gestão, desenvolvi um dashboard da educação, mostrando como os dados finais podem ser explorados para:
+
+- identificar escolas e regiões que exigem maior atenção em frequência;
+- acompanhar indicadores gerais;
+- analisar a relação entre tamanho das turmas, faixa etária e desempenho nas avaliações.
+
+O dashboard pode ser acessado aqui: [Dashboard Educação](https://datastudio.google.com/reporting/0c66300c-b24e-4bac-8268-8bc8f2e4604f)
+
+A solução foi construída para apoiar análises de frequência, desempenho e perfil dos alunos e turmas, transformando os dados brutos em indicadores consolidados e interpretáveis.
+
+Entre os principais temas explorados estão:
+
+- acompanhamento de indicadores gerais de alunos, escolas, desempenho e frequência;
+- identificação de escolas e regiões com maior proporção de alunos avaliados com frequência inferior a 75%;
+- análise da relação entre características das turmas e desempenho nas avaliações;
+- análise complementar do desempenho por faixa etária dos alunos;
+- avaliação da cobertura dos registros de avaliação para apoiar a interpretação dos indicadores.
+
+Além dos modelos `dbt`, o projeto inclui testes de qualidade, documentação das decisões de modelagem, análise exploratória em notebook e painel de visualização para monitorar os principais indicadores de frequência, desempenho e cobertura da avaliação.
 
 ---
 
-## Contexto
+## Como executar o projeto
 
-O **Registro Municipal Integrado (RMI)** é o data warehouse estratégico da Prefeitura do Rio de Janeiro, que consolida dados de saúde, educação, assistência social e dezenas de outros sistemas municipais. A qualidade, confiabilidade e rastreabilidade desses dados são fundamentais para políticas públicas baseadas em evidências.
+### Pré-requisitos
 
-Como Cientista de Dados Sênior no RMI, você liderará a modelagem analítica e a governança de dados que orientam decisões para milhões de cariocas. A **engenharia de analytics** — transformação, teste e documentação de dados — é a espinha dorsal da função.
+- Python instalado;
+- dbt instalado;
+- adapter do BigQuery configurado;
+- acesso ao projeto BigQuery com as tabelas brutas carregadas;
+- arquivo `profiles.yml` configurado corretamente.
 
-Este desafio avalia suas habilidades em **modelagem de dados com dbt**, estratégia de testes e qualidade, SQL analítico e documentação técnica, usando dados educacionais anonimizados que simulam o contexto real do RMI.
+### Instalação das dependências
 
----
-
-## Instruções
-
-1. Faça um fork do repositório do desafio para colocar a sua solução
-2. Organize o projeto seguindo as boas práticas de dbt descritas abaixo
-3. Inclua **README.md** explicando abordagem, decisões de arquitetura e como reproduzir
-4. **Entrega**: Envie o link do repositório para `selecao.pcrj@gmail.com`
-
----
-
-## Dados
-
-Os dados deste desafio representam registros educacionais da rede municipal, **anonimizados e aleatorizados** para fins de avaliação. Eles foram disponibilizados como arquivos Parquet em um bucket do Google Cloud Storage (GCS).
-
-### Tabelas Disponíveis
-
-| Arquivo (GCS) | Descrição | Granularidade |
-|----------------|-----------|---------------|
-| `aluno.parquet` | Cadastro de alunos (IDs anonimizados, faixa etária, bairro anonimizado) | 1 linha por aluno |
-| `escola.parquet` | Cadastro de unidades escolares (IDs anonimizados, tipo, região) | 1 linha por escola |
-| `turma.parquet` | Informações de turmas (série, turno, ano letivo) | 1 linha por turma |
-| `frequencia.parquet` | Registros de frequência escolar | 1 linha por aluno/dia |
-| `avaliacao.parquet` | Notas e avaliações por bimestre | 1 linha por aluno/disciplina/bimestre |
-
-### Tabela Auxiliar Pública
-
-| Tabela (BigQuery) | Descrição |
-|--------------------|-----------|
-| `datario.dados_mestres.bairro` | Cadastro de bairros do Rio de Janeiro |
-
-### Acesso aos dados
-
-Os arquivos Parquet estão disponíveis no bucket GCS:
-
-```
-https://console.cloud.google.com/storage/browser/case_vagas/rmi
+```bash
+dbt deps
 ```
 
-Alternativamente, os arquivos podem ser carregados diretamente em um dataset BigQuery pessoal para uso com dbt-bigquery (veja instruções no FAQ).
+### Execução dos modelos
 
-**⚠️ IMPORTANTE sobre os dados:**
-
-- Os dados foram **anonimizados**: todos os identificadores pessoais (nomes, CPFs, endereços) foram removidos e substituídos por IDs sintéticos
-- Os valores numéricos foram **aleatorizados** (com preservação de distribuições e relações entre tabelas)
-- **Não tente reidentificar** registros ou cruzar com fontes externas
-- Os dados servem para avaliar sua capacidade técnica de modelagem, não para gerar insights reais sobre a rede educacional
-
----
-
-## Parte 1: Projeto dbt e Modelagem
-
-**Construa um projeto dbt do zero** (`dbt-core` + adapter de sua escolha) que transforme os dados brutos em camadas analíticas.
-
-### 1. Configuração e Estrutura do Projeto
-
-Configure o projeto dbt com sources apontando para os dados disponibilizados. Organize os models seguindo a convenção de camadas staging → intermediate → marts.
-
-**Entregue**: Projeto dbt funcional (`dbt run` executa sem erros), com `dbt_project.yml` configurado, sources definidas e estrutura de diretórios organizada.
-
-### 2. Camada de Staging
-
-Crie models de staging para **pelo menos 4 tabelas** fonte. Aplique limpeza, padronização de nomes, tipagem, tratamento de nulos e filtros básicos de qualidade.
-
-**Entregue**: Models de staging com naming convention consistente, lógica de limpeza documentada e `schema.yml` com descrições das sources e colunas.
-
-### 3. Camada Intermediate
-
-Crie **pelo menos 1 model intermediate** que combine dados de múltiplas fontes. Por exemplo: um modelo que una alunos + matrículas + frequência para calcular métricas de presença por aluno/período.
-
-**Entregue**: Model(s) intermediate com lógica de join documentada (premissas, tipo de join, tratamento de registros órfãos) e justificativa das decisões de modelagem.
-
-### 4. Camada de Marts
-
-Construa **pelo menos 1 mart** orientado a responder uma pergunta analítica relevante para gestores públicos. Sugestões (ou proponha a sua):
-
-- **Absenteísmo crônico por região:** Quais escolas/regiões têm maior taxa de alunos com frequência abaixo de 75%?
-- **Desempenho por perfil de turma:** Como a composição das turmas (tamanho, série, turno) se correlaciona com desempenho nas avaliações?
-
-**Entregue**: Mart(s) materializados como table ou incremental, com `schema.yml` contendo descrições, e uma breve análise dos resultados (pode ser no README ou em um notebook auxiliar).
-
----
-
-## Parte 2: Testes e Qualidade de Dados
-
-**Esta é a parte mais importante do desafio.** A confiabilidade dos dados do RMI depende de uma estratégia sólida de testes.
-
-### 5. Testes Genéricos
-
-Aplique testes built-in do dbt (`unique`, `not_null`, `accepted_values`, `relationships`) nos models de staging e marts. A cobertura deve ser intencional — não basta testar tudo mecanicamente, queremos ver critério na escolha do que testar e por quê.
-
-**Entregue**: Testes configurados nos `schema.yml`, todos passando com `dbt test`. Documente brevemente por que cada teste é relevante (pode ser em comentários no YAML ou no README).
-
-### 6. Testes de Regra de Negócio
-
-Crie **pelo menos 2 testes singular ou customizados** que validem regras de negócio educacionais. Exemplos:
-
-- "Nenhum registro de frequência deve ter data anterior à data de matrícula do aluno naquela turma"
-- "Todo aluno com movimentação de tipo 'abandono' deve ter sua última frequência registrada antes da data da movimentação"
-- "A soma de presença + ausência por aluno/dia não deve ultrapassar a carga horária da turma"
-
-**Entregue**: Testes implementados (em `tests/` ou como macros), passando com `dbt test`, com documentação explicando a regra validada e por que ela importa.
-
----
-
-## Parte 3: Documentação e Análise
-
-### 8. Documentação do Projeto
-
-Produza documentação que permita a um novo membro do time entender e dar manutenção ao projeto.
-
-**Entregue**: README.md com instruções de setup e execução, diagrama ou descrição do lineage (staging → intermediate → marts), decisões de arquitetura (materializations, naming conventions, estratégia de testes), trade-offs identificados e o que faria diferente com mais tempo.
-
-### 9. Análise Exploratória (opcional, diferencial)
-
-Elabore um notebook Python complementar com uma análise exploratória dos dados que justifique suas escolhas de modelagem.
-
-**Entregue**: Notebook documentado mostrando padrões encontrados nos dados, anomalias ou problemas de qualidade identificados, e como isso influenciou suas decisões no dbt.
-
----
-
-## Avaliação
-
-Você será avaliado em cada uma das categorias abaixo:
-
-- **Modelagem e arquitetura dbt**
-- **Estratégia de testes e qualidade**
-- **SQL e lógica analítica**
-- **Documentação e comunicação**
-
-Os melhores candidatos serão chamados para a etapa de entrevistas.
-
-**Dica**: profundidade importa mais que completude. Melhor ter menos models com testes excelentes e documentação clara do que muitos models superficiais.
-
-### Diferenciais
-
-- Uso de dbt packages (`dbt_utils`, `dbt_expectations`, `codegen`)
-- Configuração de `freshness` nas sources
-- Uso de tags, hooks ou exposures
-- Testes de data contracts
-- Análise exploratória complementar (Parte 3, questão 9)
-- Configuração de CI com `dbt build` em GitHub Actions
-
----
-
-## Estrutura Sugerida do Repositório
-
+```bash
+dbt run
 ```
-desafio-rmi-ds/
-├── README.md
-├── dbt_project.yml
-├── packages.yml              # (se usar dbt packages)
-├── models/
-│   ├── staging/
-│   │   ├── stg_educacao__aluno.sql
-│   │   ├── stg_educacao__escola.sql
-│   │   ├── ...
-│   │   └── schema.yml
-│   ├── intermediate/
-│   │   ├── int_educacao__aluno_frequencia.sql
-│   │   └── schema.yml
-│   └── marts/
-│       ├── mart_educacao__absenteismo.sql
-│       └── schema.yml
-├── tests/                    # Testes singular
-├── macros/                   # Macros customizadas
-├── seeds/                    # Dados auxiliares (se aplicável)
-├── notebooks/                # (opcional) Análise exploratória
-│   └── eda.ipynb
-├── data/                     # Parquets baixados (não commitar)
-│   └── .gitkeep
-└── requirements.txt
+
+### Execução dos testes
+
+```bash
+dbt test
+```
+
+### Execução completa recomendada
+
+```bash
+dbt build
 ```
 
 ---
 
-## FAQ
+## Comandos úteis
 
-**1. Preciso usar BigQuery como warehouse?**
-Não obrigatoriamente. Você pode carregar os Parquets em um dataset BigQuery pessoal (recomendado para simular o ambiente real) ou, por exemplo, usar DuckDB como alternativa local (`dbt-duckdb`). O importante é que o projeto dbt funcione end-to-end.
+Executar todos os modelos:
 
-**4. Os dados estão anonimizados — posso confiar nas relações entre tabelas?**
-Sim. As chaves de relacionamento (IDs de aluno, escola, turma) foram preservadas consistentemente entre as tabelas. As distribuições estatísticas foram mantidas, mas os valores individuais foram aleatorizados.
+```bash
+dbt run
+```
 
-**5. Preciso fazer todas as partes?**
-Sim, exceto a Parte 3 questão 9 (análise exploratória), que é opcional. Mas profundidade importa mais que completude — melhor fazer menos com excelência.
+Executar todos os testes:
 
-**6. Posso usar dbt packages?**
-Sim, e é um diferencial! Sugestões: `dbt_utils`, `dbt_expectations`, `codegen`.
+```bash
+dbt test
+```
+
+Executar modelos e testes:
+
+```bash
+dbt build
+```
+---
+
+## Estrutura do projeto
+
+```text
+models/
+  staging/
+    rmi/
+      stg_educacao__aluno.sql
+      stg_educacao__escola.sql
+      stg_educacao__turma.sql
+      stg_educacao__frequencia.sql
+      stg_educacao__avaliacao.sql
+      _stg_rmi_educacao_schema.yml
+
+  intermediate/
+    int_educacao__aluno.sql
+    int_educacao__avaliacao_consolidada.sql
+    int_educacao__avaliacao_normalizada.sql
+    int_educacao__base_desempenho.sql
+    _int_rmi_educacao_schema.yml
+
+  marts/
+    mart_educacao__visao_geral.sql
+    mart_educacao__absenteismo_escola.sql
+    mart_educacao__absenteismo_regiao.sql
+    mart_educacao__desempenho_perfil_turma.sql
+    mart_educacao_desempenho_faixa_tamanho_turma.sql
+    mart_educacao__desempenho_faixa_etaria.sql
+    mart_educacao__perfil_faixa_etaria.sql
+    mart_educacao__desempenho_aluno_bimestre.sql
+    mart_educacao__desempenho_bimestre.sql
+    mart_educacao__priorizacao_turmas.sql
+    schema.yml
+
+macros/
+  clean_string.sql
+
+tests/
+  test_avaliacao_frequencia_fora_da_faixa.sql
+  test_avaliacao_notas_fora_da_faixa.sql
+  test_frequencia_fora_da_faixa.sql
+  test_frequencia_intervalo_data_invalido.sql
+  test_turma_chave_unica.sql
+
+notebooks/
+  EDA_ciencia_dados.ipynb
+
+```
+
+A organização segue a arquitetura em camadas:
+
+```text
+brutos → staging → intermediate → marts → consumo no dashboard
+```
 
 ---
 
-## Contato
+## Fontes de dados
 
-Dúvidas? Envie um email para: **<fernanda.scovino@prefeitura.rio>**
+Foram utilizadas as seguintes tabelas educacionais anonimizadas:
 
-Boa sorte! 🚀
+| Tabela | Descrição |
+|---|---|
+| `aluno` | Cadastro de alunos, com identificadores anonimizados, faixa etária e bairro |
+| `escola` | Cadastro de escolas, com identificador e bairro anonimizados |
+| `turma` | Relação entre alunos e turmas |
+| `frequencia` | Registros de frequência por disciplina e período |
+| `avaliacao` | Notas por disciplina, frequência geral bimestral e bimestre |
+
+---
+
+## Análise exploratória
+
+Antes da construção dos modelos, foi desenvolvida uma análise exploratória em Python no Google Colab, conectada ao BigQuery.
+
+O notebook está disponível em:
+
+```text
+notebooks/EDA_ciencia_dados.ipynb
+```
+
+A análise exploratória teve como objetivo:
+
+- verificar volume de linhas e estrutura das tabelas;
+- entender a granularidade das fontes;
+- avaliar preenchimento dos principais campos;
+- comparar campos de frequência disponíveis nas tabelas `frequencia` e `avaliacao`;
+- identificar inconsistências ou limitações relevantes para a modelagem;
+- orientar a construção dos modelos intermediários e marts.
+
+---
+
+## Camada staging
+
+A camada `staging` tem como objetivo padronizar as fontes brutas para uso nas camadas seguintes.
+
+Principais tratamentos aplicados:
+
+- padronização de nomes de colunas;
+- conversão de tipos;
+- conversão de identificadores para formato textual quando necessário;
+- tratamento preventivo de strings vazias e nulos;
+- remoção de registros sem identificadores essenciais.
+
+Também foi criada a macro `clean_string`, utilizada para padronizar campos textuais. A macro converte o valor para `string`, remove espaços nas extremidades e transforma strings vazias em `null`.
+
+```sql
+{% macro clean_string(column_name) %}
+    nullif(trim(cast({{ column_name }} as string)), '')
+{% endmacro %}
+
+Modelos principais:
+
+| Modelo | Descrição |
+|---|---|
+| `stg_educacao__aluno` | Base padronizada de alunos |
+| `stg_educacao__escola` | Base padronizada de escolas |
+| `stg_educacao__turma` | Relação aluno-turma |
+| `stg_educacao__frequencia` | Frequência por disciplina/período |
+| `stg_educacao__avaliacao` | Avaliações, notas e frequência bimestral |
+
+---
+
+## Camada intermediate
+
+A camada `intermediate` combina dados de múltiplas fontes e cria bases reutilizáveis para os marts.
+
+### `int_educacao__aluno`
+
+Modelo intermediário com a base de alunos padronizada para uso nas análises de perfil, como distribuição por faixa etária.
+
+### `int_educacao__avaliacao_consolidada`
+
+Modelo que consolida os registros de avaliação por aluno, turma e bimestre, preservando as notas por disciplina e a frequência geral bimestral.
+
+### `int_educacao__avaliacao_normalizada`
+
+Modelo que transforma as colunas de disciplinas (`disciplina_1`, `disciplina_2`, `disciplina_3`, `disciplina_4`) em linhas, criando uma estrutura analítica com os campos `disciplina` e `nota`.
+
+Essa normalização facilita o cálculo de médias, indicadores de desempenho e agregações por disciplina.
+
+### `int_educacao__base_desempenho`
+
+Principal modelo intermediário do projeto. Ele combina avaliação normalizada, aluno, turma, escola e frequência, permitindo análises por:
+
+- aluno;
+- turma;
+- escola;
+- bairro da escola;
+- faixa etária;
+- bimestre;
+- disciplina;
+- nota;
+- frequência geral bimestral.
+
+A frequência usada nesse modelo vem da tabela `avaliacao`, pois o schema descreve esse campo como o percentual de frequência geral do aluno no bimestre.
+
+---
+
+## Camada marts
+
+A camada `marts` contém os modelos finais utilizados no dashboard e modelos complementares para análises adicionais.
+
+Os marts principais alimentam diretamente o dashboard educacional. Já os marts complementares foram mantidos no projeto porque permitem extrair conclusões adicionais sobre desempenho por bimestre e priorização de turmas, mesmo não sendo todos utilizados diretamente nos gráficos finais.
+
+### Marts usados no dashboard
+
+| Modelo | Uso principal |
+|---|---|
+| `mart_educacao__visao_geral` | Indicadores executivos dos cards do dashboard |
+| `mart_educacao__absenteismo_escola` | Ranking de escolas por percentual de alunos avaliados com frequência inferior a 75% e tabela de apoio |
+| `mart_educacao__absenteismo_regiao` | Ranking de bairros/regiões por percentual de alunos avaliados com frequência inferior a 75% |
+| `mart_educacao__desempenho_perfil_turma` | Gráfico de dispersão entre tamanho da turma e média de nota |
+| `mart_educacao_desempenho_faixa_tamanho_turma` | Média de nota por faixa de tamanho da turma |
+| `mart_educacao__desempenho_faixa_etaria` | Média de nota por faixa etária dos alunos avaliados |
+| `mart_educacao__perfil_faixa_etaria` | Distribuição de alunos por faixa etária |
+
+### Marts complementares
+
+| Modelo | Uso complementar |
+|---|---|
+| `mart_educacao__desempenho_aluno_bimestre` | Permite analisar desempenho médio e frequência por aluno, turma e bimestre |
+| `mart_educacao__desempenho_bimestre` | Permite avaliar médias de nota e frequência por bimestre e disciplina |
+| `mart_educacao__priorizacao_turmas` | Classifica turmas em prioridade alta, média ou baixa com base em desempenho e frequência |
+
+Os modelos complementares não foram usados diretamente no dashboard final para evitar excesso de visualizações, mas foram mantidos por agregarem valor analítico. Eles permitem análises adicionais, como evolução por bimestre, acompanhamento individual por aluno/turma/bimestre e priorização de turmas para acompanhamento pedagógico.
+
+---
+
+## Descrição dos principais marts
+
+### `mart_educacao__visao_geral`
+
+Modelo utilizado para os indicadores executivos do dashboard. Ele materializa a tabela final `visao_geral_cards`, consumida nos cards principais.
+
+Indicadores principais:
+
+- total de alunos;
+- total de escolas;
+- média geral de nota;
+- quantidade de alunos com média inferior a 5;
+- frequência média;
+- quantidade de alunos com frequência inferior a 75%.
+
+---
+
+### `mart_educacao__absenteismo_escola`
+
+Modelo utilizado para responder:
+
+> Quais escolas possuem maior percentual de alunos avaliados com frequência inferior a 75%?
+
+O modelo calcula, por escola:
+
+- total de alunos da escola;
+- quantidade de alunos avaliados;
+- cobertura da avaliação;
+- quantidade de alunos avaliados com frequência inferior a 75%;
+- percentual de alunos avaliados com frequência inferior a 75%;
+- frequência média dos alunos avaliados.
+
+A taxa é calculada sobre alunos avaliados, pois a fonte do indicador é a tabela `avaliacao`.
+
+Fórmula:
+
+```text
+% alunos avaliados com frequência < 75 =
+alunos avaliados com frequência < 75 / alunos avaliados
+```
+
+---
+
+### `mart_educacao__absenteismo_regiao`
+
+Modelo utilizado para responder:
+
+> Quais bairros possuem maior percentual de alunos avaliados com frequência inferior a 75%?
+
+O modelo segue a mesma lógica do absenteísmo por escola, agregando os dados pelo bairro da escola.
+
+---
+
+### `mart_educacao__desempenho_perfil_turma`
+
+Modelo utilizado para analisar a relação entre tamanho da turma e desempenho médio.
+
+Indicadores principais:
+
+- identificador anonimizado da turma;
+- quantidade de alunos;
+- tamanho da turma;
+- quantidade de avaliações;
+- média de nota da turma;
+- frequência média da turma;
+- percentual de alunos com nota abaixo de 5;
+- percentual de alunos com nota maior ou igual a 7.
+
+Esse modelo alimenta o gráfico de dispersão:
+
+```text
+Relação entre tamanho da turma e média de nota
+```
+
+---
+
+### `mart_educacao_desempenho_faixa_tamanho_turma`
+
+Modelo utilizado para comparar o desempenho médio por faixa de tamanho da turma.
+
+Faixas utilizadas:
+
+- Até 30 alunos;
+- 31 a 40 alunos;
+- 41 a 50 alunos;
+- 51 a 60 alunos;
+- Acima de 60 alunos.
+
+Esse modelo alimenta o gráfico:
+
+```text
+Média de nota por faixa de tamanho da turma
+```
+
+---
+
+### `mart_educacao__desempenho_faixa_etaria`
+
+Modelo utilizado para analisar desempenho por faixa etária dos alunos avaliados.
+
+Indicadores principais:
+
+- faixa etária;
+- quantidade de alunos;
+- média de nota;
+- quantidade de alunos com nota abaixo de 5;
+- percentual de alunos com nota abaixo de 5.
+
+Esse modelo complementa a análise de perfil, considerando uma característica disponível na base de alunos.
+
+---
+
+### `mart_educacao__perfil_faixa_etaria`
+
+Modelo utilizado para visualizar a distribuição dos alunos por faixa etária.
+
+Indicadores principais:
+
+- faixa etária;
+- quantidade de alunos;
+- percentual de alunos.
+
+---
+
+## Decisões de modelagem
+
+### Uso da frequência da tabela avaliação
+
+O desafio propõe a análise de alunos com frequência inferior a 75%. Durante a exploração dos dados, foram identificadas duas fontes com campos de frequência:
+
+| Fonte | Descrição |
+|---|---|
+| `frequencia.frequencia` | Frequência por disciplina e período |
+| `avaliacao.frequencia` | Frequência geral bimestral do aluno |
+
+A tabela `frequencia` foi avaliada como possível fonte para o indicador de absenteísmo. No entanto, seus valores apresentaram concentração próxima de 100%, o que reduzia a utilidade analítica do corte de 75%.
+
+A tabela `avaliacao`, por outro lado, possui o campo `frequencia` descrito como percentual de frequência geral do aluno no bimestre. Por isso, esse campo foi utilizado para o indicador de frequência inferior a 75%.
+
+### Denominador do indicador de absenteísmo
+
+Como a frequência utilizada vem da tabela `avaliacao`, o indicador representa alunos avaliados, e não necessariamente todos os alunos da escola.
+
+Por isso, o dashboard e os marts deixam explícito:
+
+- total de alunos da escola;
+- quantidade de alunos avaliados;
+- cobertura da avaliação;
+- quantidade de alunos avaliados com frequência inferior a 75%;
+- percentual de alunos avaliados com frequência inferior a 75%.
+
+Essa decisão evita interpretar a taxa como se ela representasse todos os alunos da escola quando, na prática, ela representa o subconjunto com avaliação registrada.
+
+### Consolidação do indicador por escola e região
+
+Para evitar distorções causadas por bimestres isolados com poucos registros, o ranking principal foi consolidado no período analisado.
+
+A lógica aplicada foi:
+
+1. calcular a frequência média do aluno na escola ou região;
+2. classificar o aluno como abaixo de 75% quando sua frequência média for inferior a 75;
+3. calcular a proporção de alunos avaliados abaixo de 75% por escola ou região.
+
+### Análise de desempenho por perfil de turma
+
+A pergunta sugerida no desafio menciona tamanho, série e turno. No entanto, no schema disponibilizado, os campos de série e turno não estavam presentes nas fontes modeladas.
+
+Por isso, a análise de perfil de turma foi concentrada no tamanho da turma, calculado pela quantidade de alunos distintos por `id_turma`.
+
+Como complemento, também foi analisado o desempenho por faixa etária dos alunos.
+
+Essa decisão evita inferir atributos não disponíveis na base.
+
+### Marts complementares
+
+Além dos modelos usados diretamente no dashboard, foram mantidos alguns marts complementares para demonstrar possibilidades adicionais de análise.
+
+O modelo `mart_educacao__priorizacao_turmas`, por exemplo, classifica turmas em prioridade alta, média ou baixa com base em desempenho e frequência. Esse modelo poderia apoiar uma análise de acompanhamento pedagógico, permitindo identificar turmas com baixa média de nota ou maior proporção de alunos com frequência inferior a 75%.
+
+---
+
+## Dashboard
+
+O dashboard foi estruturado em três blocos principais.
+
+### 1. Visão geral
+
+Indicadores executivos:
+
+- total de alunos;
+- total de escolas;
+- média de nota;
+- alunos com média inferior a 5;
+- frequência média;
+- alunos com frequência inferior a 75%.
+
+### 2. Absenteísmo
+
+Visualizações:
+
+- escolas com maior percentual de alunos avaliados com frequência inferior a 75%;
+- bairros/regiões com maior percentual de alunos avaliados com frequência inferior a 75%;
+- tabela de apoio com total de alunos, alunos avaliados, cobertura e quantidade abaixo de 75%.
+
+A tabela de apoio foi incluída para contextualizar os rankings, especialmente nos casos em que a escola possui baixa cobertura de avaliação.
+
+### 3. Desempenho
+
+Visualizações:
+
+- relação entre tamanho da turma e média de nota;
+- média de nota por faixa de tamanho da turma;
+- distribuição de alunos por faixa etária;
+- média de nota por faixa etária dos alunos avaliados.
+
+---
+
+## Perguntas analíticas respondidas
+
+### 1. Absenteísmo crônico por região
+
+Pergunta:
+
+```text
+Quais escolas/regiões têm maior taxa de alunos com frequência abaixo de 75%?
+```
+
+Resposta no projeto:
+
+- a análise foi feita por escola e por bairro/região da escola;
+- o indicador considera alunos avaliados com frequência geral bimestral registrada;
+- o dashboard mostra os rankings por percentual;
+- a tabela de apoio mostra o volume de alunos avaliados e a cobertura da avaliação.
+
+### 2. Desempenho por perfil de turma
+
+Pergunta:
+
+```text
+Como a composição das turmas se correlaciona com desempenho nas avaliações?
+```
+
+Resposta no projeto:
+
+- a composição da turma foi representada pelo tamanho da turma;
+- foram analisadas a relação entre quantidade de alunos e média de nota e a média de nota por faixas de tamanho da turma;
+- série e turno não foram analisados por não estarem disponíveis no schema das fontes modeladas;
+- como complemento, foi incluída análise de desempenho por faixa etária dos alunos.
+
+---
+
+## Testes de qualidade
+
+Foram aplicados testes genéricos e testes de regra de negócio com o objetivo de validar a confiabilidade dos dados modelados.
+
+### Testes genéricos
+
+Exemplos de testes aplicados:
+
+- `not_null` em chaves essenciais;
+- `unique` em identificadores que devem ser únicos;
+- `relationships` para validar integridade entre tabelas;
+- `accepted_values` para domínios controlados, como bimestre e faixas etárias.
+
+### Testes singulares / regra de negócio
+
+Foram criados testes específicos para validar regras relevantes ao contexto educacional:
+
+| Teste | Objetivo |
+|---|---|
+| `test_avaliacao_frequencia_fora_da_faixa` | Verifica se a frequência geral bimestral da avaliação está entre 0 e 100 |
+| `test_avaliacao_notas_fora_da_faixa` | Verifica se as notas das disciplinas estão dentro da escala esperada de 0 a 10 |
+| `test_frequencia_fora_da_faixa` | Verifica se a frequência da tabela de frequência está entre 0 e 100 |
+| `test_frequencia_intervalo_data_invalido` | Verifica se `data_fim` não é anterior a `data_inicio` |
+| `test_turma_chave_unica` | Verifica duplicidade na relação entre aluno e turma |
+
+A estratégia de testes priorizou colunas e regras que impactam diretamente os indicadores finais do dashboard.
+
+---
+
+## Limitações
+
+- Os dados são anonimizados e aleatorizados, portanto no dashboard, escolas e bairros/regiões receberam nomes fictícios e sequenciais, como `Escola 69` e `Bairro 100`, apenas para facilitar a visualização e a comparação dos indicadores. Esses nomes não representam unidades ou bairros reais.
+- O indicador de frequência inferior a 75% usa a frequência geral bimestral da tabela `avaliacao`.
+- Como a tabela `avaliacao` não cobre necessariamente todos os alunos da escola, o percentual de absenteísmo foi calculado sobre alunos avaliados.
+- Série e turno não estavam disponíveis nas fontes modeladas, limitando a análise de perfil de turma ao tamanho da turma.
+- Algumas escolas possuem baixa cobertura de avaliação; por isso, os rankings devem ser interpretados junto à tabela de apoio.
+
+---
