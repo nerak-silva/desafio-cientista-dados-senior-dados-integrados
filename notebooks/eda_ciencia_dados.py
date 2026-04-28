@@ -12,7 +12,7 @@ Analise explotaria dados RMI educacao
 # @title
 # SETUP INICIAL DO COLAB PARA BIGQUERY
 
-# 1) Autentica sua conta Google no Colab
+# 1) Autentica  Google no Colab
 from google.colab import auth
 auth.authenticate_user()
 
